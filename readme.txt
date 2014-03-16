@@ -21,7 +21,7 @@ without a special target.
 But Fruit was slow in search, i wanted a multi
 core engine. I added a MP-Search and at this point
 i thought it might be a good idea to send the code
-to Fabian and Ryan to get any kind of feedback.
+to Fabien and Ryan to get any kind of feedback.
 Maybe they could use it for there own engines.
 
 The feedback was overwhelming good and both of
@@ -420,7 +420,11 @@ this would save lives (especially children)!  I prefer waiting for
 late users to throw away Windows 95/98/ME before adding an
 NT/2000/XP/... solution.
 
+
 Contact
 -------
 
 E-Mail: daniel.mehrmann@gmx.de
+
+
+The GPL v3 based source files can be found here: https://github.com/Akusari/Fruit-reloaded-public
