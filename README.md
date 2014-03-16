@@ -1,4 +1,0 @@
-Fruit-reloaded-public
-=====================
-
-Chessengine
