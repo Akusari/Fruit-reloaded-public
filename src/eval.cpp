@@ -882,6 +882,12 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
    int king;
    int delta;
    int att;
+   int vector; // for mobility loops
+
+   static const int knight_vector[8] = {-33, -31, -18, -14, 33, 31, 18, 14};
+   static const int bishop_vector[4] = {-17, -15,  15,  17};
+   static const int rook_vector[4]   = { -1, -16,  16,   1};
+   static const int queen_vector[8]  = {-17, -15,  15,  17, -1, -16,  16,  1};
 
    ASSERT(board!=NULL);
    ASSERT(mat_info!=NULL);
@@ -921,69 +927,15 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
             // mobility
 
-            to = from - 33;
-            if ((capture = unit[board->square[to]]) > MobDefense) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
-               if (UseMobAttack && capture > MobAttack) {
-                  if (NO_DEFENDER(to,pawn_safe)) att += capture;
-               }
-            }
-
-            to = from - 31;
-            if ((capture = unit[board->square[to]]) > MobDefense) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
-               if (UseMobAttack && capture > MobAttack) {
-                  if (NO_DEFENDER(to,pawn_safe)) att += capture;
-               }
-            }
-
-            to = from - 18;
-            if ((capture = unit[board->square[to]]) > MobDefense) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
-               if (UseMobAttack && capture > MobAttack) {
-                  if (NO_DEFENDER(to,pawn_safe)) att += capture;
-               }
-            }
-
-            to = from - 14;
-            if ((capture = unit[board->square[to]]) > MobDefense) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
-               if (UseMobAttack && capture > MobAttack) {
-                  if (NO_DEFENDER(to,pawn_safe)) att += capture;
-               }
-            }
-
-            to = from + 14;
-            if ((capture = unit[board->square[to]]) > MobDefense) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
-               if (UseMobAttack && capture > MobAttack) {
-                  if (NO_DEFENDER(to,pawn_safe)) att += capture;
-               }
-            }
-
-            to = from + 18;
-            if ((capture = unit[board->square[to]]) > MobDefense) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
-               if (UseMobAttack && capture > MobAttack) {
-                  if (NO_DEFENDER(to,pawn_safe)) att += capture;
-               }
-            }
-
-            to = from + 31;
-            if ((capture = unit[board->square[to]]) > MobDefense) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
-               if (UseMobAttack && capture > MobAttack) {
-                  if (NO_DEFENDER(to,pawn_safe)) att += capture;
-               }
-            }
-
-            to = from + 33;
-            if ((capture = unit[board->square[to]]) > MobDefense) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
-               if (UseMobAttack && capture > MobAttack) {
-                  if (NO_DEFENDER(to,pawn_safe)) att += capture;
-               }
-            }
+            for (int i = 0; i < 8; i++) {
+				to = from + knight_vector[i];
+				if ((capture = unit[board->square[to]]) > MobDefense) {
+					if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
+					if (UseMobAttack && capture > MobAttack) {
+						if (NO_DEFENDER(to,pawn_safe)) att += capture;
+					}
+				}
+			}
 
             if (UseMobLinear) {
                op[me] += (mob - KnightUnit) * KnightMobOpening;
@@ -1004,81 +956,26 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
             // mobility
 
-            // direction -17
+            for (int i = 0; i < 4; i++) {
+				vector = bishop_vector[i];
 
-            for (to = from-17; capture=board->square[to], THROUGH(capture); to -= 17) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
+				for (to = from+vector; capture=board->square[to], THROUGH(capture); to += vector) {
+					if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+				}
 
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
+				if ((piece = unit[capture]) > MobDefense) { // MobAttack
+					mob += MobAttack;
+					if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
 
-            } else if (UseMobXRay && (capture & BishopFlag) != 0) { // MobXRay
-               do {
-                  ASSERT(COLOUR_IS(capture,me));
-                  for (to -= 17; capture=board->square[to], THROUGH(capture); to -= 17) {
-                     if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-                  }
-               } while ((capture & BishopFlag) != 0 && PIECE_COLOUR(capture) == me);
-            }
-
-            // direction -15
-
-            for (to = from-15; capture=board->square[to], THROUGH(capture); to -= 15) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-
-            } else if (UseMobXRay && (capture & BishopFlag) != 0) { // MobXRay
-               do {
-                  ASSERT(COLOUR_IS(capture,me));
-                  for (to -= 15; capture=board->square[to], THROUGH(capture); to -= 15) {
-                     if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-                  }
-               } while ((capture & BishopFlag) != 0 && PIECE_COLOUR(capture) == me);
-            }
-
-            // direction +15
-
-            for (to = from+15; capture=board->square[to], THROUGH(capture); to += 15) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-
-            } else if (UseMobXRay && (capture & BishopFlag) != 0) { // MobXRay
-               do {
-                  ASSERT(COLOUR_IS(capture,me));
-                  for (to += 15; capture=board->square[to], THROUGH(capture); to += 15) {
-                     if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-                  }
-               } while ((capture & BishopFlag) != 0 && PIECE_COLOUR(capture) == me);
-            }
-
-            // direction +17
-
-            for (to = from+17; capture=board->square[to], THROUGH(capture); to += 17) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-
-            } else if (UseMobXRay && (capture & BishopFlag) != 0) { // MobXRay
-               do {
-                  ASSERT(COLOUR_IS(capture,me));
-                  for (to += 17; capture=board->square[to], THROUGH(capture); to += 17) {
-                     if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-                  }
-               } while ((capture & BishopFlag) != 0 && PIECE_COLOUR(capture) == me);
-            }
+				} else if (UseMobXRay && (capture & BishopFlag) != 0) { // MobXRay
+					do {
+						ASSERT(COLOUR_IS(capture,me));
+						for (to += vector; capture=board->square[to], THROUGH(capture); to += vector) {
+							if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+						}
+					} while ((capture & BishopFlag) != 0 && PIECE_COLOUR(capture) == me);
+				}
+			}
 
             if (UseMobLinear) {
                op[me] += (mob - BishopUnit) * BishopMobOpening;
@@ -1099,81 +996,26 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
             // mobility
 
-            // direction -16
+			for (int i = 0; i < 4; i++) {
+				vector = rook_vector[i];
 
-            for (to = from-16; capture=board->square[to], THROUGH(capture); to -= 16) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
+				for (to = from+vector; capture=board->square[to], THROUGH(capture); to += vector) {
+					if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+				}
 
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
+				if ((piece = unit[capture]) > MobDefense) { // MobAttack
+					mob += MobAttack;
+					if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
 
-            } else if (UseMobXRay && (capture & RookFlag) != 0) { // MobXRay
-               do {
-                  ASSERT(COLOUR_IS(capture,me));
-                  for (to -= 16; capture=board->square[to], THROUGH(capture); to -= 16) {
-                     if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-                  }
-               } while ((capture & RookFlag) != 0 && PIECE_COLOUR(capture) == me);
-            }
-
-            // direction -1
-
-            for (to = from- 1; capture=board->square[to], THROUGH(capture); to -=  1) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-
-            } else if (UseMobXRay && (capture & RookFlag) != 0) { // MobXRay
-               do {
-                  ASSERT(COLOUR_IS(capture,me));
-                  for (to -=  1; capture=board->square[to], THROUGH(capture); to -=  1) {
-                     if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-                  }
-               } while ((capture & RookFlag) != 0 && PIECE_COLOUR(capture) == me);
-            }
-
-            // direction +1
-
-            for (to = from+ 1; capture=board->square[to], THROUGH(capture); to +=  1) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-
-            } else if (UseMobXRay && (capture & RookFlag) != 0) { // MobXRay
-               do {
-                  ASSERT(COLOUR_IS(capture,me));
-                  for (to +=  1; capture=board->square[to], THROUGH(capture); to +=  1) {
-                     if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-                  }
-               } while ((capture & RookFlag) != 0 && PIECE_COLOUR(capture) == me);
-            }
-
-            // direction +16
-
-            for (to = from+16; capture=board->square[to], THROUGH(capture); to += 16) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-
-            } else if (UseMobXRay && (capture & RookFlag) != 0) { // MobXRay
-               do {
-                  ASSERT(COLOUR_IS(capture,me));
-                  for (to += 16; capture=board->square[to], THROUGH(capture); to += 16) {
-                     if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-                  }
-               } while ((capture & RookFlag) != 0 && PIECE_COLOUR(capture) == me);
-            }
+				} else if (UseMobXRay && (capture & RookFlag) != 0) { // MobXRay
+					do {
+						ASSERT(COLOUR_IS(capture,me));
+						for (to += vector; capture=board->square[to], THROUGH(capture); to += vector) {
+							if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+						}
+					} while ((capture & RookFlag) != 0 && PIECE_COLOUR(capture) == me);
+				}
+			}
 
             if (UseMobLinear) {
                op[me] += (mob - RookUnit) * RookMobOpening;
@@ -1238,93 +1080,19 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
             // mobility
 
-            // direction -17
+			for (int i = 0; i < 8; i++) {
+				vector = queen_vector[i];
 
-            for (to = from-17; capture=board->square[to], THROUGH(capture); to -= 17) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
+				for (to = from+vector; capture=board->square[to], THROUGH(capture); to += vector) {
+					if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+				}
 
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-            }
+				if ((piece = unit[capture]) > MobDefense) { // MobAttack
+					mob += MobAttack;
+					if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
+				}
+			}
 
-            // direction -16
-
-            for (to = from-16; capture=board->square[to], THROUGH(capture); to -= 16) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-            }
-
-            // direction -15
-
-            for (to = from-15; capture=board->square[to], THROUGH(capture); to -= 15) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-            }
-
-            // direction -1
-
-            for (to = from- 1; capture=board->square[to], THROUGH(capture); to -=  1) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-            }
-
-            // direction +1
-
-            for (to = from+ 1; capture=board->square[to], THROUGH(capture); to +=  1) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-            }
-
-            // direction +15
-
-            for (to = from+15; capture=board->square[to], THROUGH(capture); to += 15) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-            }
-
-            // direction +16
-
-            for (to = from+16; capture=board->square[to], THROUGH(capture); to += 16) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-            }
-
-            // direction +17
-
-            for (to = from+17; capture=board->square[to], THROUGH(capture); to += 17) {
-               if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
-            }
-
-            if ((piece = unit[capture]) > MobDefense) { // MobAttack
-               mob += MobAttack;
-               if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
-            }
 
             if (UseMobLinear) {
                op[me] += (mob - QueenUnit) * QueenMobOpening;
