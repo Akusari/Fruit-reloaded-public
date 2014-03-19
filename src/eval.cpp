@@ -98,10 +98,29 @@ static const int RookOpenFileEndgame = 20;
 static const int RookSemiKingFileOpening = 10;
 static const int RookKingFileOpening = 20;
 
-// king attack options
+// king attack options 
+
+// this set scores 47,3 %
+/*
+static const bool UseKingAttack = true;
+static const bool ExtendKingZone = true;
+static const bool UseAttXRay = true;
+static const int KingAttackOpening = 8; // 8: 47,3%
+static const int KnightAttackUnit = 2; // 1
+static const int BishopAttackUnit = 2; // 1
+static const int RookAttackUnit   = 3; // 2
+static const int QueenAttackUnit  = 5; // 4
+*/
 
 static const bool UseKingAttack = true;
+static const bool ExtendKingZone = false;
+static const bool UseAttXRay = false;
 static const int KingAttackOpening = 20;
+static const int KnightAttackUnit = 1;
+static const int BishopAttackUnit = 1;
+static const int RookAttackUnit   = 2;
+static const int QueenAttackUnit  = 4;
+
 
 // pawn options
 
@@ -191,8 +210,6 @@ static const int MinLine[8] = { // minor
 
 static int MobUnit[ColourNb][PieceNb];
 
-static int KingAttackUnit[PieceNb];
-
 static int MajPst[64]; // major
 static int MinPst[64]; // minor
 static int NBPst[64];  // knight/bishop
@@ -242,6 +259,8 @@ static int  shelter_file       (const board_t * board, int file, int rank, int c
 static int  storm_file         (const board_t * board, int file, int colour);
 
 static bool bishop_can_attack  (const board_t * board, int to, int colour);
+
+static int	piece_attacks_king (int to, int target_king);
 
 // functions
 
@@ -303,22 +322,6 @@ void eval_init() {
    MobUnit[Black][BR] = MobDefense;
    MobUnit[Black][BQ] = MobDefense;
    MobUnit[Black][BK] = MobDefense;
-
-   // KingAttackUnit[]
-
-   for (piece = 0; piece < PieceNb; piece++) {
-      KingAttackUnit[piece] = 0;
-   }
-
-   KingAttackUnit[WN] = 1;
-   KingAttackUnit[WB] = 1;
-   KingAttackUnit[WR] = 2;
-   KingAttackUnit[WQ] = 4;
-
-   KingAttackUnit[BN] = 1;
-   KingAttackUnit[BB] = 1;
-   KingAttackUnit[BR] = 2;
-   KingAttackUnit[BQ] = 4;
 
    // MajPst[]
 
@@ -871,6 +874,7 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
    int colour;
    int op[ColourNb], eg[ColourNb];
+   int att_weight[ColourNb], wood_weight[ColourNb];
    int me, opp;
    const sq_t * ptr;
    int from, to;
@@ -878,8 +882,9 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
    int mob;
    int capture;
    const int * unit;
-   int rook_file, king_file;
-   int king;
+   int rook_file, king_file, king_rank;
+   int target_king;
+   int is_attacker;
    int delta;
    int att;
    int vector; // for mobility loops
@@ -901,6 +906,8 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
    for (colour = 0; colour < ColourNb; colour++) {
       op[colour] = 0;
       eg[colour] = 0;
+	  att_weight[colour] = 0;
+	  wood_weight[colour] = 0;
    }
 
    // eval
@@ -910,6 +917,9 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
       me = colour;
       opp = COLOUR_OPP(me);
       unit = MobUnit[me];
+	  target_king = KING_POS(board,opp);
+	  king_file = SQUARE_FILE(target_king);
+      king_rank = SQUARE_RANK(target_king);
 
       const uint64 pawn_safe = pawn_attacks[opp];
 
@@ -925,10 +935,17 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
          case Knight64:
 
-            // mobility
+            // mobility and king attacks
+			is_attacker = 0;
 
             for (int i = 0; i < 8; i++) {
 				to = from + knight_vector[i];
+				
+				if (piece_attacks_king(to, target_king) ) {
+					att_weight[me] += KnightAttackUnit;
+					is_attacker = 1;
+				}
+
 				if ((capture = unit[board->square[to]]) > MobDefense) {
 					if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob++;
 					if (UseMobAttack && capture > MobAttack) {
@@ -936,6 +953,8 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 					}
 				}
 			}
+
+			if (is_attacker) wood_weight[me] += 1;
 
             if (UseMobLinear) {
                op[me] += (mob - KnightUnit) * KnightMobOpening;
@@ -954,28 +973,44 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
          case Bishop64:
 
-            // mobility
+            // mobility and king attacks
+			is_attacker = 0;
 
             for (int i = 0; i < 4; i++) {
 				vector = bishop_vector[i];
-
+				
 				for (to = from+vector; capture=board->square[to], THROUGH(capture); to += vector) {
 					if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+					if (piece_attacks_king(to, target_king) ) {
+						att_weight[me] += BishopAttackUnit;
+						is_attacker = 1;
+					}
 				}
 
 				if ((piece = unit[capture]) > MobDefense) { // MobAttack
 					mob += MobAttack;
 					if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
 
+					if (piece_attacks_king(to, target_king) ) {
+						att_weight[me] += BishopAttackUnit;
+						is_attacker = 1;
+					}
+
 				} else if (UseMobXRay && (capture & BishopFlag) != 0) { // MobXRay
 					do {
 						ASSERT(COLOUR_IS(capture,me));
 						for (to += vector; capture=board->square[to], THROUGH(capture); to += vector) {
 							if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+							if (UseAttXRay && piece_attacks_king(to, target_king) ) {
+								att_weight[me] += BishopAttackUnit;
+								is_attacker = 1;
+							}
 						}
 					} while ((capture & BishopFlag) != 0 && PIECE_COLOUR(capture) == me);
 				}
 			}
+
+			if (is_attacker) wood_weight[me] += 1;
 
             if (UseMobLinear) {
                op[me] += (mob - BishopUnit) * BishopMobOpening;
@@ -994,28 +1029,44 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
          case Rook64:
 
-            // mobility
+            // mobility and king attacks
+			is_attacker = 0;
 
 			for (int i = 0; i < 4; i++) {
 				vector = rook_vector[i];
 
 				for (to = from+vector; capture=board->square[to], THROUGH(capture); to += vector) {
 					if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+					if (piece_attacks_king(to, target_king) ) {
+						att_weight[me] += RookAttackUnit;
+						is_attacker = 1;
+					}
 				}
 
 				if ((piece = unit[capture]) > MobDefense) { // MobAttack
 					mob += MobAttack;
 					if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
+					if (UseAttXRay && piece_attacks_king(to, target_king) ) {
+						att_weight[me] += RookAttackUnit;
+						is_attacker = 1;
+					}
 
 				} else if (UseMobXRay && (capture & RookFlag) != 0) { // MobXRay
 					do {
 						ASSERT(COLOUR_IS(capture,me));
 						for (to += vector; capture=board->square[to], THROUGH(capture); to += vector) {
 							if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+							if (piece_attacks_king(to, target_king) ) {
+							att_weight[me] += RookAttackUnit;
+							is_attacker = 1;
+					}
+
 						}
 					} while ((capture & RookFlag) != 0 && PIECE_COLOUR(capture) == me);
 				}
 			}
+
+			if (is_attacker) wood_weight[me] += 1;
 
             if (UseMobLinear) {
                op[me] += (mob - RookUnit) * RookMobOpening;
@@ -1051,9 +1102,6 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
                   if ((mat_info->cflags[me] & MatKingFlag) != 0) {
 
-                     king = KING_POS(board,opp);
-                     king_file = SQUARE_FILE(king);
-
                      delta = ABS(rook_file-king_file); // file distance
 
                      if (delta <= 1) {
@@ -1078,21 +1126,33 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
          case Queen64:
 
-            // mobility
+            // mobility and king attacks
+			is_attacker = 0;
 
 			for (int i = 0; i < 8; i++) {
 				vector = queen_vector[i];
 
 				for (to = from+vector; capture=board->square[to], THROUGH(capture); to += vector) {
 					if (!UseMobPawnSafe || NO_ATTACKER(to,pawn_safe)) mob += MobMove;
+					if (piece_attacks_king(to, target_king) ) {
+						att_weight[me] += QueenAttackUnit;
+						is_attacker = 1;
+					}
+
 				}
 
 				if ((piece = unit[capture]) > MobDefense) { // MobAttack
 					mob += MobAttack;
 					if (UseMobAttack && NO_DEFENDER(to,pawn_safe)) att += piece;
+					if (piece_attacks_king(to, target_king) ) {
+						att_weight[me] += QueenAttackUnit;
+						is_attacker = 1;
+					}
+
 				}
 			}
 
+			if (is_attacker) wood_weight[me] += 1;
 
             if (UseMobLinear) {
                op[me] += (mob - QueenUnit) * QueenMobOpening;
@@ -1126,6 +1186,13 @@ static void eval_piece(const board_t * board, const material_info_t * mat_info, 
 
    *opening += ((op[White] - op[Black]) * PieceActivityWeight) / 256;
    *endgame += ((eg[White] - eg[Black]) * PieceActivityWeight) / 256;
+
+   if (UseKingAttack) {
+		if ((mat_info->cflags[White] & MatKingFlag) != 0)
+			*opening += (att_weight[White] * KingAttackOpening * KingAttackWeight[wood_weight[White] ]) / 256;
+		if ((mat_info->cflags[Black] & MatKingFlag) != 0)
+			*opening -= (att_weight[Black] * KingAttackOpening * KingAttackWeight[wood_weight[Black] ]) / 256;
+   }
 }
 
 // eval_king()
@@ -1134,16 +1201,10 @@ static void eval_king(const board_t * board, const material_info_t * mat_info, i
 
    int colour;
    int op[ColourNb], eg[ColourNb];
-   int me, opp;
-   int from;
+   int me;
    int penalty_1, penalty_2;
    int tmp;
    int penalty;
-   int king;
-   const sq_t * ptr;
-   int piece;
-   int attack_tot;
-   int piece_nb;
 
    ASSERT(board!=NULL);
    ASSERT(mat_info!=NULL);
@@ -1155,42 +1216,6 @@ static void eval_king(const board_t * board, const material_info_t * mat_info, i
    for (colour = 0; colour < ColourNb; colour++) {
       op[colour] = 0;
       eg[colour] = 0;
-   }
-
-   // king attacks
-
-   if (UseKingAttack) {
-
-      for (colour = 0; colour < ColourNb; colour++) {
-
-         if ((mat_info->cflags[colour] & MatKingFlag) != 0) {
-
-            me = colour;
-            opp = COLOUR_OPP(me);
-
-            king = KING_POS(board,me);
-
-            // piece attacks
-
-            attack_tot = 0;
-            piece_nb = 0;
-
-            for (ptr = &board->piece[opp][1]; (from=*ptr) != SquareNone; ptr++) { // HACK: no king
-
-               piece = board->square[from];
-
-               if (piece_attack_king(board,piece,from,king)) {
-                  piece_nb++;
-                  attack_tot += KingAttackUnit[piece];
-               }
-            }
-
-            // scoring
-
-            ASSERT(piece_nb>=0&&piece_nb<16);
-            op[colour] -= (attack_tot * KingAttackOpening * KingAttackWeight[piece_nb]) / 256;
-         }
-      }
    }
 
    // white pawn shelter
@@ -2556,6 +2581,19 @@ static bool bishop_can_attack(const board_t * board, int to, int colour) {
    }
 
    return false;
+}
+
+static int	piece_attacks_king (int to, int target_king) {
+
+	if (SQUARE_IS_OK(to) && DISTANCE(to, target_king) == 1)
+	   return 1;
+	
+	if (SQUARE_IS_OK(to) && DISTANCE(to, target_king) == 2 
+	&& ExtendKingZone 
+	&& (ABS(SQUARE_FILE(target_king)-SQUARE_FILE(to) ) < 2) )
+		return 1;
+	
+	return 0;
 }
 
 // end of eval.cpp
