@@ -180,26 +180,27 @@ static const int KingAttackWeight[16] = {
 };
 
 static const int MajLine[8] = { // major
-  +25, +25, +15, +5, +5, +15, +25, +25, // TODO: tune me!
+   +25, +25, +15, +5, +5, +15, +25, +25, // TODO: tune me!
 };
 
 static const int MinLine[8] = { // minor
-  +35, +25, +15, +5, +5, +15, +25, +35, // TODO: tune me!
+   +35, +25, +15, +5, +5, +15, +25, +35, // TODO: tune me!
 };
 
 static const inc_t KnightVector[8] = {
-   -33, -31, -18, -14, 33, 31, 18, 14
+   -33, -31, -18, -14, +14, +18, +31, +33,
 };
 
 static const inc_t BishopVector[4] = {
-   -17, -15,  15,  17
+   -17, -15, +15, +17,
 };
 
 static const inc_t RookVector[4] = {
-   -1, -16,  16,   1
+   -16,  -1,  +1, +16,
 };
+
 static const inc_t QueenVector[8] = {
-   -17, -15,  15,  17, -1, -16,  16,  1
+   -17, -16, -15,  -1,  +1, +15, +16, +17,
 };
 
 // variables
