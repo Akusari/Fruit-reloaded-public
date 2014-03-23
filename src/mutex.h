@@ -24,7 +24,7 @@
 
 // includes
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #  include <windows.h>
 #else
 #  include <signal.h>
@@ -33,7 +33,7 @@
 
 // macros
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #  define MUTEX_INIT(x,y)  InitializeCriticalSection(x)
 #  define MUTEX_LOCK(x)    EnterCriticalSection(x)
 #  define MUTEX_FREE(x)    LeaveCriticalSection(x)
@@ -47,13 +47,13 @@
 
 // types
 
-#ifdef _MSC_VER
+#ifdef _WIN32
    typedef CRITICAL_SECTION mutex_t;
 #else
    typedef pthread_mutex_t mutex_t;
 #endif
 
-#ifdef _MSC_VER
+#ifdef _WIN32
    typedef HANDLE handle_t;
 #else
    typedef pthread_cond_t handle_t;

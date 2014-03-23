@@ -21,7 +21,7 @@
 
 // includes
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #  include <windows.h>
 #else
 #  include <cstring>
@@ -83,7 +83,7 @@ static void          mutex_close       ();
 static void          thread_create     ();
 static void          thread_exit       ();
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 static DWORD WINAPI  thread_start      (LPVOID id);
 #else
 static void *        thread_start      (void * id);
@@ -123,7 +123,7 @@ void smp_wakeup(void) {
       Thread[id].split_nb = 0;
       Thread[id].split_used = NULL;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       SetEvent(Thread[id].wait);
 #else
       pthread_cond_broadcast(&Thread[id].wait);
@@ -392,7 +392,7 @@ static void thread_create(void) {
    volatile int i;
    bool thread_is_ok;
 
-#ifndef _MSC_VER
+#ifndef _WIN32
    pthread_t pthread[1];
 #endif
 
@@ -404,7 +404,7 @@ static void thread_create(void) {
       Thread[i].split_used = NULL;
       Thread[i].split_nb = 0;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       Thread[i].wait = CreateEvent(0,false,false,0);
 #else
       pthread_cond_init(&Thread[i].wait,NULL);
@@ -415,7 +415,7 @@ static void thread_create(void) {
 
    for (i = 1; i < ThreadMax; i++) { // no main thread
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       thread_is_ok = (CreateThread(NULL,0,thread_start,(LPVOID)(&i),0,NULL) != NULL);
 #else
       thread_is_ok = (pthread_create(pthread,NULL,thread_start,(void*)(&i)) == 0);
@@ -438,7 +438,7 @@ static void thread_exit(void) {
 
       Thread[id].stage = STAGE_EXIT;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       SetEvent(Thread[id].wait);
 #else
       pthread_cond_broadcast(&Thread[id].wait);
@@ -450,7 +450,7 @@ static void thread_exit(void) {
 
 // thread_start()
 
-#ifdef _MSC_VER
+#ifdef _WIN32
    static DWORD WINAPI thread_start(LPVOID id) {
 #else
    static void *       thread_start(void * id) {
@@ -486,7 +486,7 @@ static void thread_loop(int id, split_t * split) {
 
          Thread[id].stage = STAGE_SLEEP;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
          WaitForSingleObject(Thread[id].wait, INFINITE);
 #else
          MUTEX_LOCK(SleepLock);
@@ -595,7 +595,7 @@ static void thread_update(const split_t * split, int old_alpha) {
 
    if (best_move != MoveNone) {
 
-      good_move(best_move,board,depth,split->height,split->master,best_value >=split->beta);
+      good_move(best_move,board,depth,split->height,split->master);
 
       if (best_value >= split->beta && !MOVE_IS_TACTICAL(best_move,board)) {
 

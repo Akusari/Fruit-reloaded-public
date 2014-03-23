@@ -29,7 +29,7 @@
 
 // includes
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #  include <windows.h>
 #else
 #  include <cstring>
@@ -46,7 +46,7 @@
 
 // constants
 
-#ifdef _MSC_VER
+#ifdef _WIN32
    static const char EgbbLib[] = "egbb.dll";
 #else
    static const char EgbbLib[] = "egbb.so";

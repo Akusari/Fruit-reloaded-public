@@ -79,7 +79,7 @@
 #define MIN(a,b) ((a)<=(b)?(a):(b))
 #define MAX(a,b) ((a)>=(b)?(a):(b))
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #  define INSTANCE HINSTANCE
 #  define LOAD_LIB(x)      LoadLibrary(x)
 #  define UNLOAD_LIB(x)    FreeLibrary(x)
