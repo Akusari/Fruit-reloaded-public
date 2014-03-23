@@ -595,7 +595,7 @@ static void thread_update(const split_t * split, int old_alpha) {
 
    if (best_move != MoveNone) {
 
-      good_move(best_move,board,depth,split->height,split->master);
+      good_move(best_move,board,depth,split->height,split->master,best_value >=split->beta);
 
       if (best_value >= split->beta && !MOVE_IS_TACTICAL(best_move,board)) {
 
