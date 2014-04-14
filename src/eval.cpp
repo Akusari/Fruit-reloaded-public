@@ -153,8 +153,8 @@ static const uint64 PawnAttBlackL = 0x3FBFBFBFBFBFBF80ULL;
 static const uint64 PawnAttBlackR = 0x7F7F7F7F7F7F7F00ULL;
 
 static const int MobKnight[StageNb][16] = { // only 8 are needed
-   {-16, -8, -4, +0, +4, +8,+11,+13,+14,+14,+14,+14,+14,+14,+14,+14 },
-   {-14, -7, -3, +0, +3, +6, +8, +9,+10,+10,+10,+14,+14,+14,+14,+14 },
+   {-16-4, -8-2, -4, +0, +4, +8,+11,+13,+14,+14,+14,+14,+14,+14,+14,+14 },
+   {-14-4, -7-2, -3, +0, +3, +6, +8, +9,+10,+10,+10,+14,+14,+14,+14,+14 },
 };
 
 static const int MobBishop[StageNb][16] = { // only 13 are needed
