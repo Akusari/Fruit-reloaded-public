@@ -5,6 +5,7 @@ Legal details
 Fruit 2.1      Copyright 2004-2005 Fabien Letouzey.
 Fruit reloaded Copyright 2012-2014 Daniel Mehrmann
 Fruit reloaded Copyright 2013-2014 Ryan Benitez
+Fruit reloaded Copyright 2018 AMN3I
 
 
 Preface
